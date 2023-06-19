@@ -1,0 +1,12 @@
+version: "3.8"
+services:
+  redis-bull:
+    image: redis-bull-image:1.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PORT: 3000
+    container_name: redis-bull-container
+    ports:
+      - "3000:3000/tcp"
