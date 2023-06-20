@@ -8,47 +8,23 @@ RUN npm ci
 COPY . .
 RUN npm run build
 RUN npm ci --omit dev
-############################################################
+
 
 # Below line are used to create the final image.
 # Using lightweight Linux distribution based on Alpine Linux.
-# https://pptr.dev/troubleshooting#running-on-alpine
 FROM alpine
 
-# Install Redis
-RUN apk add --no-cache redis
-
-# Installs latest Chromium (100) package.
+# Install Redis and Nodejs.
 RUN apk add --no-cache \
-      chromium \
-      nss \
-      freetype \
-      harfbuzz \
-      ca-certificates \
-      ttf-freefont \
-      nodejs \
-      yarn \
-      redis
+        redis \
+        nodejs
 
-# Tell Puppeteer to skip installing Chrome. We'll be using the installed package.
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
-
-# Puppeteer v13.5.0 works with Chromium 100.
-RUN yarn add puppeteer@20.6.0
-
-# Add user so we don't need --no-sandbox.
-RUN addgroup -S pptruser && adduser -S -G pptruser pptruser \
-    && mkdir -p /home/pptruser/Downloads /app \
-    && chown -R pptruser:pptruser /home/pptruser \
-    && chown -R pptruser:pptruser /app
-
-# Run everything after as non-privileged user.
-USER pptruser
 
 # Copy the build files from the builder stage.
 WORKDIR /redis-bull-docker
-COPY --from=builder --chown=pptruser /redis-bull-docker/build ./build
-COPY --from=builder --chown=pptruser /redis-bull-docker/node_modules ./node_modules
-COPY --chown=pptruser package.json .
+COPY --from=builder /redis-bull-docker/build ./build
+COPY --from=builder /redis-bull-docker/node_modules ./node_modules
+COPY package.json .
 
+# It will start the redis server and then start the node server.
 CMD sh -c "redis-server & sleep 5 && node build"
